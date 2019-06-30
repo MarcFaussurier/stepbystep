@@ -25,15 +25,13 @@ class Utils {
     }
 
     /**
-     * @param Controller[] $controller_list
      * @param array[] $method_list
      * @param string $controller_name
      * @param string $function_name
      * @return array
      * @throws \Exception
      */
-    static public function getControllerMethod( $controller_list, $method_list, $controller_name, $function_name): array {
-        $controller = self::getController($controller_list, $controller_name);
+    static public function getControllerMethod($method_list, $controller_name, $function_name): array {
         $e = null;
         foreach ($method_list as $f) {
             if ($f["this_one"] == $function_name && $f["controller"] instanceof $controller_name)

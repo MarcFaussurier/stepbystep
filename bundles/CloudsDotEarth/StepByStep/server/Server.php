@@ -59,7 +59,7 @@ class Server
     public function exec(string $controller, string $function, callable $match_callback, ... $args) : bool {
         var_dump($function);
         $controller_instance = Utils::getController($this->main_bundle->controllers, $controller);
-        $method_instance = Utils::getControllerMethod($this->main_bundle->controllers, $this->main_bundle->controllers_methods, $controller, $function);
+        $method_instance = Utils::getControllerMethod($this->main_bundle->controllers_methods, $controller, $function);
         // no controller was found
         if (is_null($controller_instance)) {
             throw new \Exception("unable to find controller called '$controller'");
