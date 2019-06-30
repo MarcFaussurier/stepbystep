@@ -11,16 +11,15 @@ namespace CloudsDotEarth\StepByStep;
 
 class ControllerMethodArguments
 {
-    public $given_matches               = [];       //  ℹ️
-    public $proceed_events              = [];       //  🤔
-    public $ignore_events               = [];       //  ⛔🤔
+    public $given_matches               = [];       //  ℹ️ or nothing
+    public $events                      = [];       //  🤔 or nothing
+    public $ignore_events               = [];       //  ⛔🤔 or nothing
     public $verify_the_match            = true;     //  ✅ or ❌
-    public $inherit_match               = false;    //  💾
-    public $proceed_after               = true;     // ️➡️
-    public $proceed_before              = true;     // ️⬅️
-    public $proceed_attached_events     = true;     //  ⛓
-    public $proceed_inner_events        = true;     // ️䷼
-    public $invert_next                 = false;    //  ⛔
+    public $inherit_match               = false;    //  💾 or nothing ️➡️
+    public $proceed_after               = true;     // ️➡️ or   ⛔➡️
+    public $proceed_before              = true;     // ️⬅️ or ️ ⛔️⬅️
+    public $proceed_attached_events     = true;     //  ⛓ or   ⛔⛓
+    public $proceed_inner_events        = true;     // ️䷼ or   ⛔䷼
 
     // todo :: add arguments support
     /**
@@ -117,6 +116,17 @@ class ControllerMethodArguments
      * ✅ℹ️🤔 : we verify the match and handle given ev array AND set match using given array
      * ✅ℹ️⛔🤔 : we verify the match and don't handle given ev array AND set match using given array
      * ✅ℹ️  : we verify the match and  handle all events AND set match using given array
+     *
+     *
+     *  // [handle target methods after this one #2]
+     *
+     *  // [handle target methods after this one #1-5]
+     *
+     *  // [handle target methods after this one]
+     *
+     * // php[
+     *      // php format array here for the matches arguments
+     * ]
      *
      */
 }
