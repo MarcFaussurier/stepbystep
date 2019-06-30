@@ -31,7 +31,7 @@ class Server
                     $matches = [];
                     if (preg_match_all("^$pattern^", $request->server["request_uri"], $matches))
                         return [true, $matches];
-                    return [false];
+                    return [false, null];
 
                 }, $request, $response)) break;
         }});
