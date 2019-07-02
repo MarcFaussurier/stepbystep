@@ -11,17 +11,97 @@ namespace CloudsDotEarth\StepByStep;
 
 class ControllerMethodArguments
 {
-    public $given_matches               = [];       //  ℹ️ or nothing
+    public const SUPPORTED_OPS = [
+        0 => "ℹ️",   // begin given matches declaration ... eval the given statement ???
+        1 => "🤔",    // begin even events declaration ... eval the given statement ???
+        2 => "✅",    // check the match
+        3 => "❌",    // don't check the match
+        4 => "💾",    // inherit_match
+        5 => "⛔",    // negate 1 4 (notice :: it is already the case) 6 7 8 9
+        6 => "➡️",
+        7 => "⬅️",
+        8 => "⛓",
+        9 => "䷼",
+    ];
+
+    public $given_matches               = [];       //  ℹ️ or nothing // expect controller::method !!!
     public $events                      = [];       //  🤔 or nothing
     public $ignore_events               = [];       //  ⛔🤔 or nothing
     public $verify_the_match            = true;     //  ✅ or ❌
-    public $inherit_match               = false;    //  💾 or nothing ️➡️
+    public $inherit_match               = false;    //  💾 or nothing ️
     public $proceed_after               = true;     // ️➡️ or   ⛔➡️
-    public $proceed_before              = true;     // ️⬅️ or ️ ⛔️⬅️
-    public $proceed_attached_events     = true;     //  ⛓ or   ⛔⛓
+    public $proceed_before              = true;     // ️⬅️ or  ️ ⛔️⬅️
+    public $proceed_hooks     = true;     //  ⛓ or   ⛔⛓
     public $proceed_inner_events        = true;     // ️䷼ or   ⛔䷼
 
-    // todo :: add arguments support
+    public function __construct(string $target_prefix = "") {
+        if ( $target_prefix !== "") {
+            $chars = str_split($target_prefix);
+            $last_char = $chars[0];
+            $current_buffer = "";
+            $waiting_buffer = false;
+            $callback = function($buffer) { };
+            foreach ($chars as $position => $char) {
+                switch ($char) {
+                    case "ℹ️": // ℹ️
+                        $waiting_buffer = true;
+                        $callback = function ($buffer) {
+                            $this->given_matches = eval($buffer);
+                        };
+                        break;
+                    case "🤔": // 🤔
+                        $waiting_buffer = true;
+                        $callback = function ($buffer) {
+                            // todo :: handle that
+                            $this->ignore_events = explode(",", $buffer);
+                        };
+                        break;
+                    case "💾":
+                        $this->inherit_match = true;
+                        break;
+                    case "➡️": // ➡️
+                        if ($last_char === "⛔") {
+                            $this->proceed_after = false;
+                        } else {
+                            $this->proceed_after = true;
+                        }
+                        break;
+                    case "⬅️": // ⬅️
+                        if ($last_char === "⛔") {
+                            $this->proceed_before = false;
+                        } else {
+                            $this->proceed_before = true;
+                        }
+                        break;
+                    case "⛓":
+                        if ($last_char === "⛔") {
+                            $this->proceed_hooks = false;
+                        } else {
+                            $this->proceed_hooks = true;
+                        }
+                        break;
+                    case "䷼":
+                        if ($last_char === "⛔") {
+                            $this->proceed_inner_events = false;
+                        } else {
+                            $this->proceed_inner_events = true;
+                        }
+                        break;
+                    default:
+                        if ($waiting_buffer && (!isset($chars[$position + 1]) || (isset($chars[$position + 1]) && in_array($chars[$position + 1], self::SUPPORTED_OPS)))) {
+                            $callback($current_buffer);
+                            $current_buffer = "";
+                        } else {
+                            $current_buffer .= $char;
+                        }
+                        break;
+                }
+                $last_char = $char;
+            }
+        }
+    }
+
+    // todo :: add arguments support ❌ℹ️
     /**
      *      *
      * ❌ℹ️⛔ we don't verify the match and do nothing at all AND set match using given array

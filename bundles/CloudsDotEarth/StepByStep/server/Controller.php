@@ -91,45 +91,49 @@ class Controller
 
                             foreach ($exploded as $v) {
                                 $lines = explode(PHP_EOL,  $v);
-                                $type = $lines[0];
+                                $type = trim($lines[0]);
                                 unset($lines[0]);
-                                $elements = explode("🎯", $v);
-                                unset($elements[0]);
-                                foreach ($elements as $k =>  $e) {
-                                    $elements[$k] = trim(str_replace("/", "", str_replace("*", "", $elements[$k] )));
+                                $elements = [];
+                                foreach ($lines as $k =>  $e) {
+                                    $arguments = trim(explode("*", trim(explode("🎯", $e)[0]))[1]);
+                                    $controller_method_args = new ControllerMethodArguments($arguments);
+                                    if (!isset(explode("🎯", $e)[1]))
+                                        break;
+                                    $elements[$k] = [trim(explode("🎯", $e)[1]), $controller_method_args];
+                                    // $elements[$k] = trim(explode("🎯", $e)[1]);
                                 }
                                 switch ($type) {
-                                    case "handle target methods after this one":
+                                    case "target methods after this one":
                                         $aa = array_merge($aa, $elements);      break;
-                                    case "handle target methods before this one":
+                                    case "target methods before this one":
                                         $ab = array_merge($ab, $elements);      break;
-                                    case "handle this method after target ones":
+                                    case "this method after target ones":
                                         $ac = array_merge($ac, $elements);      break;
-                                    case "handle this method before target ones":
+                                    case "this method before target ones":
                                         $ad = array_merge($ad, $elements);      break;
-                                    case "handle target methods after this one by ignoring its stop":
+                                    case "target methods after this one by ignoring its stop":
                                         $ba = array_merge($ba, $elements);      break;
-                                    case "handle target methods before this one by ignoring its stop":
+                                    case "target methods before this one by ignoring its stop":
                                         $bb = array_merge($bb, $elements);      break;
-                                    case  "handle this method by ignoring its stop after target ones":
+                                    case  "this method by ignoring its stop after target ones":
                                         $bc = array_merge($bc, $elements);      break;
-                                    case "handle this method by ignoring its stop before target ones":
+                                    case "this method by ignoring its stop before target ones":
                                         $bd = array_merge($bd, $elements);      break;
-                                    case "handle target methods by ignoring their stop after this one":
+                                    case "target methods by ignoring their stop after this one":
                                         $ca = array_merge($ca, $elements);      break;
-                                    case "handle target methods by ignoring their stop before this one":
+                                    case "target methods by ignoring their stop before this one":
                                         $cb = array_merge($cb, $elements);      break;
-                                    case "handle this method after target ones by ignoring their stop":
+                                    case "this method after target ones by ignoring their stop":
                                         $cc = array_merge($cc, $elements);      break;
-                                    case "handle this method before target ones by ignoring their stop":
+                                    case "this method before target ones by ignoring their stop":
                                         $cd = array_merge($cd, $elements);      break;
-                                    case "handle target methods by ignoring their stop after this one by ignoring its stop":
+                                    case "target methods by ignoring their stop after this one by ignoring its stop":
                                         $da = array_merge($da, $elements);      break;
-                                    case "handle target methods by ignoring their stop before this one by ignoring its stop":
+                                    case "target methods by ignoring their stop before this one by ignoring its stop":
                                         $db = array_merge($db, $elements);      break;
-                                    case "handle this method by ignoring its stop after target ones by ignoring their stop":
+                                    case "this method by ignoring its stop after target ones by ignoring their stop":
                                         $dc = array_merge($dc, $elements);      break;
-                                    case "handle this method by ignoring its stop before target ones by ignoring their stop":
+                                    case "this method by ignoring its stop before target ones by ignoring their stop":
                                         $dd = array_merge($dd, $elements);      break;
                                     default:  break;
                                 }

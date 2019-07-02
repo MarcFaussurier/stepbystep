@@ -15,7 +15,7 @@ class Home extends \CloudsDotEarth\StepByStep\Controller {
      * @match           /hello[a-zA-Z.]{0,5}
      * @priority        0
      * @handle target methods after this one
-     *      ✅ℹ️⛔🤔[handle target methods after this one #2]🎯 \CloudsDotEarth\StepByStep\Controller::toto
+     *      ✅ℹ️⛔🤔[handle target methods after this one #2]  🎯 \CloudsDotEarth\StepByStep\Controller::toto
      * @handle target methods before this one
      * @handle this method after target ones
      * @handle this method before target ones
