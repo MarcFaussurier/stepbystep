@@ -76,7 +76,9 @@ class Bundle
 
     public function loadTwig() {
         $loader = new \Twig\Loader\ArrayLoader($this->views);
-        $this->twig = new \Twig\Environment($loader);
+        $this->twig = new \Twig\Environment($loader, [
+            'cache' => $this->main_bundle->root_path . "/cache",
+        ]);
     }
 
     public function loadControllers() {
