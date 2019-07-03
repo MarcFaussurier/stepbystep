@@ -35,9 +35,6 @@ EXAMPLE OF CONTROLLER ::
 
 - TODO : optional isomorphic rust components (thanks to php-ext-wasm)
 
-- TODO : No model, ORM or shit, instead we use plain PostgreSQL and its function (stored procedures) system.
-
-- TODO : Bundle system, share assets and controllers between your projects. Just reuse what you did / you want in your other projects.
 Write easily your own common tools & management area for all your projects. 
 
 
