@@ -16,52 +16,106 @@ class Bundle
      * @var Controller[]
      */
     public $controllers = [];
+    /**
+     * @var string[]
+     */
+    public $views = [];
     public $controllers_methods = [];
+    /**
+     * @var Bundle[]
+     */
+    public $twig = null;
+    /**
+     * @var Bundle
+     */
+    public $main_bundle = null;
     public $child_bundles = [];
     /**
      * @var bool
      */
     private $is_main = true;
     private $root_path = "";
+    private $relative_template_root = "/template";
     private $relative_controller_root = "/controller";
     private $relative_web_root = "/asset";
     private $relative_server_root = "/server";
 
-    public function __construct($root_path, $relative_controller_root = null, $relative_web_root = null, $relative_server_root = null)
+    public function __construct($root_path, $relative_controller_root = null, $relative_web_root = null, $relative_server_root = null, $main_bundle = null)
     {
         $this->root_path = $root_path;
-        if (file_exists($root_path . "/../../../vendor/autoload.php")) {
-            $this->is_main = false;
-        } else if (!file_exists($root_path . "/vendor/autoload.php")) {
-            throw new \Exception("Unable to find autoloader.php in $root_path. Please run composer install before launching app.php");
-        }
+        $this->is_main = $main_bundle === null;
+        if ($this->is_main)
+            $this->main_bundle = $this;
+        else
+            $this->main_bundle = $main_bundle;
+        $GLOBALS["main_bundle"] = $this->main_bundle;
         echo "Loading bundle using root path : $root_path is main :  $this->is_main" . PHP_EOL;
         $this->relative_controller_root = $relative_controller_root ?? $this->relative_controller_root;
         $this->relative_web_root = $relative_web_root ?? $this->relative_web_root;
         $this->relative_server_root = $relative_server_root ?? $this->relative_server_root;
-
         $this->loadControllers();
-
+        $this->loadViews();
         if ($this->is_main) {
             $this->init();
+            $this->appendControllersMethods();
+            $this->loadChildBundles();
+            $this->loadTwig();
         }
-
-        foreach ($this->controllers as $e) {
-            foreach ($e->methods as $f) {
-                $this->controllers_methods[] = $f;
-            }
-        }
-
-        usort($this->controllers, function($a, $b) {
-            return ($a["priority"] > $b["priority"] );
-        });
-
-        $this->loadChildBundles();
-
         if ($this->is_main)  $this->run();
     }
 
-    public function loadChildBundles() {
+    public function loadViews() {
+        $data = json_decode(file_get_contents($this->root_path . "/composer.json"));
+        foreach (glob($this->root_path . $this->relative_template_root . "/{,*/,*/*/,*/*/*/}*.twig", GLOB_BRACE ) as $file) {
+            $file_content = file_get_contents($file);
+            $path = explode(".twig", explode($this->root_path . $this->relative_template_root, $file)[1])[0];
+            $this->main_bundle->views[$data->name . $path] = $file_content;
+        }
+        var_dump( $this->main_bundle->views);
+    }
+
+    public function loadTwig() {
+        $loader = new \Twig\Loader\ArrayLoader($this->views);
+        $this->twig = new \Twig\Environment($loader);
+    }
+
+    public function loadControllers() {
+        echo "loading controllers ... " . PHP_EOL;
+        foreach (glob($this->root_path . $this->relative_controller_root . "/{,*/,*/*/,*/*/*/}*.php", GLOB_BRACE ) as $file) {
+            var_dump($file);
+            $controller = Utils::getClassNameFromFile($file);
+            array_push($this->main_bundle->controllers, new $controller());
+        }
+    }
+
+    public function appendControllersMethods() {
+        foreach ($this->main_bundle->controllers as $e) {
+            foreach ($e->methods as $f) {
+                $this->main_bundle->controllers_methods[] = $f;
+            }
+        }
+        usort( $this->main_bundle->controllers, function($a, $b) {
+            return ($a["priority"] > $b["priority"] );
+        });
+    }
+
+    public function loadChildBundles()
+    {
+        var_dump("bundles:");
+        foreach (["/bundles", "/vendor"] as $v) {
+            if (file_exists($this->root_path . $v))
+                foreach (preg_grep('/^([^.])/',scandir($this->root_path . $v)) as $vendor_name)
+                    if (is_dir($this->root_path . "$v/$vendor_name"))
+                        foreach (preg_grep('/^([^.])/',scandir($this->root_path . "$v/$vendor_name")) as $package)
+                            if (is_dir($this->root_path . "$v/$vendor_name/$package"))
+                                foreach (preg_grep('/^([^.])/',scandir($this->root_path . "$v/$vendor_name/$package")) as $file)
+                                    if ($file === "bundle.php")
+                                        $this->child_bundles[] = require_once $this->root_path . "$v/$vendor_name/$package/$file";
+
+        }
+
+        var_dump("bundles:");
+        var_dump($this->child_bundles);
 
     }
 
@@ -77,14 +131,5 @@ class Bundle
 
     public function run() {
         new Server($this, require_once "$this->root_path/server/" . $_ENV["DEFAULT_SERVER"] . ".php");
-    }
-
-    public function loadControllers() {
-        echo "loading controllers ... " . PHP_EOL;
-        foreach (glob($this->root_path . $this->relative_controller_root . "/{,*/,*/*/,*/*/*/}*.php", GLOB_BRACE ) as $file) {
-            var_dump($file);
-            $controller = Utils::getClassNameFromFile($file);
-            array_push($this->controllers, new $controller());
-        }
     }
 }

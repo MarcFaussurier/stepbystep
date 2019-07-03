@@ -33,7 +33,8 @@ class Home extends \CloudsDotEarth\StepByStep\Controller {
      * @handle this method by ignoring its stop before target ones by ignoring their stop
      *
      **/
-    public function request(&$request, &$response, $matches = []): bool {
+    public function request(&$request, &$response, &$cross_call_memory, &$main_bundle, &$matches = []): bool {
+        $response->end($main_bundle->twig->render("marcfsr/stepbystep/home", ['msg' => 'toto']));
         echo "toto1" . PHP_EOL;
         var_dump($matches);
         return false;
@@ -51,7 +52,7 @@ class Home extends \CloudsDotEarth\StepByStep\Controller {
      * @priority        0
      *
      **/
-    public function toto(&$request, &$response, $matches = []): bool {
+    public function toto(&$request, &$response, $cross_call_memory, $main_bundle, &$matches = []): bool {
         echo "toto2" . PHP_EOL;
         var_dump($matches);
         return true;
@@ -66,7 +67,7 @@ class Home extends \CloudsDotEarth\StepByStep\Controller {
      * @param           $server
      * @return          bool
      **/
-    public function start($server): bool {
+    public function start(&$server, $cross_call_memory, $main_bundle, &$matches = []): bool {
         echo "Swoole http server is started at http://127.0.0.1:8080\n";
     }
 
@@ -80,7 +81,7 @@ class Home extends \CloudsDotEarth\StepByStep\Controller {
      * @param           $req
      * @return          bool
      **/
-    public function open($server, $req): bool {
+    public function open(&$server, &$req, $cross_call_memory, $main_bundle, &$matches = []): bool {
         echo "connection open: {$req->fd}\n";
     }
 
@@ -96,7 +97,7 @@ class Home extends \CloudsDotEarth\StepByStep\Controller {
      * @param           $matches  array
      * @return          bool
      **/
-    public function message($server, $frame, $matches = []): bool {
+    public function message(&$server, &$frame, $cross_call_memory, $main_bundle, &$matches = []): bool {
         echo "received message: {$frame->data}\n";
         $server->push($frame->fd, json_encode(["hello", "world"]));
     }
@@ -111,7 +112,7 @@ class Home extends \CloudsDotEarth\StepByStep\Controller {
      * @param           $fd
      * @return          bool
      **/
-    public function close($server, $fd): bool {
+    public function close(&$server, &$fd, $cross_call_memory, $main_bundle, &$matches = []): bool {
         echo "connection close: {$fd}\n";
     }
 }

@@ -20,7 +20,12 @@ if (isset($argv)) {
     $GLOBALS["argv"] = $argv;
 }
 if (isset($GLOBALS["main_bundle"])) {
-    return new \CloudsDotEarth\StepByStep\Bundle(__DIR__, $GLOBALS["main_bundle"]);
+    return new \CloudsDotEarth\StepByStep\Bundle
+    (   __DIR__,
+        null,
+        null,
+        null  ,
+        $GLOBALS["main_bundle"]);
 } else {
     return new \CloudsDotEarth\StepByStep\Bundle(__DIR__);
 }
