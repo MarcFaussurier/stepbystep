@@ -3,7 +3,7 @@ This project aims to be a minimalist web framework with simple features. Suitabl
 It aims to be a very customizable CMS and Framework that encourage code reuse.
 
 EXAMPLE OF CONTROLLER ::
-`   /**
+  ```php /**
       * @param           $request
       * @param           $response
       * @param           $matches  array
@@ -20,7 +20,7 @@ EXAMPLE OF CONTROLLER ::
          echo "toto1" . PHP_EOL;
          var_dump($matches);
          return false;
-     }`
+     }```
 
 
 
