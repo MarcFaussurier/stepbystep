@@ -61,14 +61,23 @@ class Home extends \CloudsDotEarth\StepByStep\Controller {
     /**
      * @packet_type     start
      * @priority        0
-     * @run_after
-     * @run_before
+     * @this_one        start
      *
      * @param           $server
      * @return          bool
      **/
     public function start(&$server, $cross_call_memory, $main_bundle, &$matches = []): bool {
-        echo "Swoole http server is started at http://127.0.0.1:8080\n";
+        echo "Swoole http server is started att http://127.0.0.1:8080\n";
+        echo "Connecting to database...";
+            $pg = new \Swoole\Coroutine\PostgreSql();
+            $conn = $pg -> connect ("host=127.0.0.1 port=5432 dbname=stepbystep user=postgres password=");
+            if(!$conn){
+                var_dump($pg->error);
+            } else {
+                echo "okok";
+            }
+        echo "returned";
+        return false;
     }
 
     /**

@@ -17,60 +17,76 @@ class Server
 
     private $main_bundle;
 
-    public function __construct(Bundle $main_bundle, $swoole_server) {
+    public function __construct(Bundle &$main_bundle, $swoole_server) {
         $this->main_bundle = $main_bundle;
-        $swoole_server->on('start', function ($server) use ($main_bundle) {
-            echo "Swoole http server is started at ". $GLOBALS["ip"] .":" . $GLOBALS["port"];
-            foreach ($main_bundle->controllers_methods as $e) {
-                if ($e["packet_type"] !== 'start') break;
-                if ($this->exec(get_class($e["controller"]), $e["function"] , function($e, $server) {
-                    return [true];
+       //var_dump($main_bundle->controllers_methods);
+        $swoole_server->on('start', function ($server) {
+            go(function () use(&$server) {
+                //echo "Swoole http server is started at ". $GLOBALS["ip"] .":" . $GLOBALS["port"];
+                // var_dump($main_bundle->controllers_methods);
+                // var_dump($main_bundle->controllers_methods);
+                foreach ($this->main_bundle->controllers_methods as $e) {
+                    if ($e["packet_type"] !== "start") continue;
+                    if ($this->exec($e["controller"], $e["function"], function ($e, $server) {
+                        return [true, null];
+                    }, new ControllerMethodArguments(), [], $server)) break;
+                }
+            });
+        });
+        $swoole_server->on('request', function ($request, $response) {
+            go(function() use (&$request, &$response) {
+                foreach ($this->main_bundle->controllers_methods as $e) {
+                    if ($e["packet_type"] !== 'request') continue;
+                    if ($this->exec($e["controller"], $e["function"], function ($e, $request, $response) {
+                        $pattern = $e["match"];
+                        $matches = [];
+                        if (preg_match_all("^$pattern^", $request->server["request_uri"], $matches))
+                            return [true, $matches];
+                        return [false, null];
 
-                }, new ControllerMethodArguments(), [], $server)) break;
-        }});
-        $swoole_server->on('request', function ($request, $response) use ($main_bundle) {
-            echo("inside request match");
-            foreach ($main_bundle->controllers_methods as $e) {
-                if ($e["packet_type"] !== 'request') break;
-                if ($this->exec(get_class($e["controller"]), $e["function"] , function($e, $request, $response) {
-                    $pattern = $e["match"];
-                    $matches = [];
-                    if (preg_match_all("^$pattern^", $request->server["request_uri"], $matches))
-                        return [true, $matches];
-                    return [false, null];
+                    }, new ControllerMethodArguments(), [], $request, $response)) break;
+                }
+            });
+        });
+        $swoole_server->on('open', function($server, $req) {
+            go(function() use (&$server, &$req) {
+                echo "connection open: {$req->fd}\n";
+                foreach ($this->main_bundle->controllers_methods as $e) {
+                    if ($e["packet_type"] !== 'open') continue;
+                    if ($this->exec($e["controller"], $e["function"], function ($e, $server, $req) {
+                        return [true, null];
 
-                }, new ControllerMethodArguments(), [], $request, $response)) break;
-        }});
-        $swoole_server->on('open', function($server, $req) use ($main_bundle) {
-            echo "connection open: {$req->fd}\n";
-            foreach ($main_bundle->controllers_methods as $e) {
-                if ($e["packet_type"] !== 'open') break;
-                if ($this->exec(get_class($e["controller"]), $e["function"] , function($e, $server, $req) {
-                    return [true];
-
-                }, new ControllerMethodArguments(), [],$server, $req)) break;
-        }});
-        $swoole_server->on('message', function($server, $frame) use ($main_bundle) {
-            echo "received message: {$frame->data}\n";
-            $server->push($frame->fd, json_encode(["hello", "world"]));
-            foreach ($main_bundle->controllers_methods as $e) {
-                if ($e["packet_type"] !== 'message') break;
-                if ($this->exec(get_class($e["controller"]), $e["function"] , function($e, $server, $frame) {
-                    $pattern = $e["match"];
-                    $matches = [];
-                    if (preg_match_all("^$pattern^", $frame->data, $matches))
-                        return [true, $matches];
-                    return [false, null];
-                }, new ControllerMethodArguments(), [], $server, $frame)) break;
-        }});
-        $swoole_server->on('close', function($server, $fd) use ($main_bundle) {
-            echo "connection close: {$fd}\n";
-            foreach ($main_bundle->controllers_methods as $e) {
-                if ($e["packet_type"] !== 'close') break;
-                if ($this->exec(get_class($e["controller"]), $e["function"] , function($e, $server, $fd) {
-                    return [true];
-                }, new ControllerMethodArguments(), [], $server, $fd)) break;
-        }});
+                    }, new ControllerMethodArguments(), [], $server, $req)) break;
+                }
+            });
+        });
+        $swoole_server->on('message', function($server, $frame) {
+            go(function() use (&$server, &$frame) {
+                echo "received message: {$frame->data}\n";
+                $server->push($frame->fd, json_encode(["hello", "world"]));
+                foreach ($this->main_bundle->controllers_methods as $e) {
+                    if ($e["packet_type"] !== 'message') continue;
+                    if ($this->exec($e["controller"], $e["function"], function ($e, $server, $frame) {
+                        $pattern = $e["match"];
+                        $matches = [];
+                        if (preg_match_all("^$pattern^", $frame->data, $matches))
+                            return [true, $matches];
+                        return [false, null];
+                    }, new ControllerMethodArguments(), [], $server, $frame)) break;
+                }
+            });
+        });
+        $swoole_server->on('close', function($server, $fd) {
+            go(function () use(&$server, &$fd) {
+                echo "connection close: {$fd}\n";
+                foreach ($this->main_bundle->controllers_methods as $e) {
+                    if ($e["packet_type"] !== 'close') continue;
+                    if ($this->exec($e["controller"], $e["function"], function ($e, $server, $fd) {
+                        return [true, null];
+                    }, new ControllerMethodArguments(), [], $server, $fd)) break;
+                }
+            });
+        });
         $swoole_server->start();
     }
 

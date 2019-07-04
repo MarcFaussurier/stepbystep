@@ -142,7 +142,7 @@ class Controller
 
                         $output[] = [
                             "this_one"                                                      => trim($this_one),
-                            "controller"                                                    => &$this,
+                            "controller"                                                    => get_class($this),
                             "function"                                                      => $lastFunction,
                             "packet_type"                                                   => trim($packet_type),
                             "priority"                                                      => trim($priority),

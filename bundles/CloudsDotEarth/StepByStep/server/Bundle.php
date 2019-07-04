@@ -30,6 +30,7 @@ class Bundle
      */
     public $main_bundle = null;
     public $child_bundles = [];
+    public $db_conn = null;
     /**
      * @var bool
      */
@@ -60,8 +61,22 @@ class Bundle
             $this->appendControllersMethods();
             $this->loadChildBundles();
             $this->loadTwig();
+            $this->initDatabaseConnexion();
         }
         if ($this->is_main)  $this->run();
+    }
+
+    public function initDatabaseConnexion() {
+      /*  go(function () {
+            echo "Connecting to database...";
+            $pg = new \Swoole\Coroutine\PostgreSql();
+            $conn = $pg -> connect ("host=127.0.0.1 port=5432 dbname=stepbystep user=postgres password=");
+            if(!$conn){
+                var_dump($pg->error);
+            } else {
+                echo "okok";
+            }
+        });*/
     }
 
     public function loadViews() {
@@ -91,12 +106,13 @@ class Bundle
     }
 
     public function appendControllersMethods() {
+        var_dump("appending controller methods ... ");
         foreach ($this->main_bundle->controllers as $e) {
             foreach ($e->methods as $f) {
                 $this->main_bundle->controllers_methods[] = $f;
             }
         }
-        usort( $this->main_bundle->controllers, function($a, $b) {
+        usort(  $this->main_bundle->controllers_methods, function($a, $b) {
             return ($a["priority"] > $b["priority"] );
         });
     }
@@ -117,7 +133,7 @@ class Bundle
         }
 
         var_dump("bundles:");
-        var_dump($this->child_bundles);
+       // var_dump($this->child_bundles);
 
     }
 

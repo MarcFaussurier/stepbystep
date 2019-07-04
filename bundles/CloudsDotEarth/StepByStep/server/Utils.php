@@ -34,7 +34,7 @@ class Utils {
     static public function getControllerMethod($method_list, $controller_name, $function_name): array {
         $e = null;
         foreach ($method_list as $f) {
-            if ($f["this_one"] == $function_name && $f["controller"] instanceof $controller_name)
+            if ($f["this_one"] == $function_name && $f["controller"] === $controller_name)
                 $e = $f;
         }
         if (is_null($e)) {
@@ -95,5 +95,49 @@ class Utils {
         } else {
             return "\\" . self::getNamespaceFromFile($file_path) . "\\$class";
         }
+    }
+
+
+
+    /**
+     * Returns all table in the current database
+     * @param Core $core
+     * @return string[]
+     */
+    public static function getDatabaseTables(Core &$core) : array {
+        $output = [];
+        $tables = $core->db->query("show tables");
+        foreach ($tables as $k => $v) {
+            array_push($output, $v["Tables_in_" . $core->envConfig["database"]["database"]]);
+        }
+        return $output;
+    }
+
+    /**
+     * @param Core $core
+     * @param string $tableName
+     * @return array
+     */
+    public static function getColsInTable(Core &$core, string $tableName) : array {
+        return
+            $core->db->query("SHOW COLUMNS FROM `". $tableName . "`");
+    }
+
+    /**
+     *
+     * @param string $path
+     * @param string $content
+     * @param bool $createPath
+     */
+    public static function filePutsContent(string $path, string $content, bool $createPath = true) {
+        if ($createPath) {
+            $h = explode("/", $path);
+            unset($h[count($h) - 1]);
+            $dirPath = join("/", $h);
+            if (!is_dir($dirPath)) {
+                mkdir(join("/", $h), 0755, true);
+            }
+        }
+        file_put_contents( $path, $content);
     }
 }
