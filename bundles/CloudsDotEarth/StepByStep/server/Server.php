@@ -19,12 +19,8 @@ class Server
 
     public function __construct(Bundle &$main_bundle, $swoole_server) {
         $this->main_bundle = $main_bundle;
-       //var_dump($main_bundle->controllers_methods);
         $swoole_server->on('start', function ($server) {
             go(function () use(&$server) {
-                //echo "Swoole http server is started at ". $GLOBALS["ip"] .":" . $GLOBALS["port"];
-                // var_dump($main_bundle->controllers_methods);
-                // var_dump($main_bundle->controllers_methods);
                 foreach ($this->main_bundle->controllers_methods as $e) {
                     if ($e["packet_type"] !== "start") continue;
                     if ($this->exec($e["controller"], $e["function"], function ($e, $server) {
@@ -43,7 +39,6 @@ class Server
                         if (preg_match_all("^$pattern^", $request->server["request_uri"], $matches))
                             return [true, $matches];
                         return [false, null];
-
                     }, new ControllerMethodArguments(), [], $request, $response)) break;
                 }
             });
@@ -55,7 +50,6 @@ class Server
                     if ($e["packet_type"] !== 'open') continue;
                     if ($this->exec($e["controller"], $e["function"], function ($e, $server, $req) {
                         return [true, null];
-
                     }, new ControllerMethodArguments(), [], $server, $req)) break;
                 }
             });
