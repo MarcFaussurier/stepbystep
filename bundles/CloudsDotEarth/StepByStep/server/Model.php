@@ -69,14 +69,15 @@ class Model {
         $this->row_id = $id;
         $this->tableMetaData = $this->getModelMetaData();
         if ($this->row_id !== -1) {
-            $stmt = Core::$staticDb->prepare("SELECT * FROM `".$this->table_name."` WHERE row_id = ?;");
-            $rowResult = $stmt->execute([$this->row_id]);
-            if (count($rowResult) !== 1) {
+            $pg = Bundle::get_pgsql();
+            $pg->prepare($id = uniqid(), "SELECT * FROM $this->table_name WHERE row_id = ?;");
+            $row_result = $pg->fetchAll($pg->execute($id, [$this->row_id]));
+            if (count($row_result) !== 1) {
                 throw new \Exception("Unable to fetch model id " . $this->row_id . " from table "
                     . $this->table_name . " model have to exists and to be unique");
             }
             $this->tableMetaData = $this->getModelMetaData();
-            foreach ($rowResult[0] as $k => $v) {
+            foreach ($row_result[0] as $k => $v) {
                 $this->$k = $this->mysqlToPhpVal($k, $v);
             }
             foreach ($this->relations as $col => $v) {
@@ -85,9 +86,10 @@ class Model {
                 // or many-to-many
                 if (in_array($v[0], ['many_to_many', 'one_to_many'])) {
                     $targetTable = $v[2];
-                    $query = "SELECT * FROM " . Utils::graveify($v[2]) . " WHERE " . Utils::graveify(self::pluralToSingular($this->table_name) . "_id") . " = ?;";
-                    $stmt = Core::$staticDb->prepare($query);
-                    $rows = $stmt->execute([$this->row_id]);
+                    $query = "SELECT * FROM " . $v[2] . " WHERE " . $this->table_name . " = ?;";
+                    $pg = Bundle::get_pgsql();
+                    $pg->prepare($id = uniqid(), $query);
+                    $rows = $pg->fetchAll($pg->execute($id, [$this->row_id]));
                     $this->$col = [];
                     foreach ($rows as $id => $cols) {
                         $className = self::tableNameToClass($col);
@@ -110,7 +112,7 @@ class Model {
         $success = true;
         // insert if no id were given
         if ($this->row_id === self::DEFAULT_ID) {
-            $query = "INSERT INTO `".$this->table_name."` VALUES(null";
+            $query = "INSERT INTO ".$this->table_name." VALUES(null";
             foreach ($this->tableMetaData as $key => $value) {
                 if ($key !== "row_id") {
                     $query .= ",?";
@@ -121,7 +123,7 @@ class Model {
         }
         // else we perform an update
         else {
-            $query = "UPDATE `".$this->table_name."` SET ";
+            $query = "UPDATE ".$this->table_name." SET ";
             $countOfCols = count($this->tableMetaData);
             $cnt = 0;
             foreach ($this->tableMetaData as $key => $value) {
@@ -134,21 +136,25 @@ class Model {
             $query .= " WHERE row_id = ?;";
             array_push($params, $this->row_id);
         }
-        $stmt = Core::$staticDb->prepare($query);
-        if (!$stmt->execute($params)) {
+        $pg = Bundle::get_pgsql();
+        $pg->prepare($id = uniqid(), $query);
+        if (!$pg->execute($id, $params)) {
             $success = false;
         }
         foreach ($this->relations as $col => $v) {
             if(in_array($v[0], ["one_to_many", "many_to_many"])) {
-                $query = "DELETE FROM " . Utils::graveify($v[2]) . " WHERE " . Utils::graveify(self::pluralToSingular($this->table_name) . "_id") . " = ?;";
-                $stmt = Core::$staticDb->prepare($query);
-                if (!$stmt->execute([$this->row_id])) {
+                $query = "DELETE FROM " . $v[2] . " WHERE " . $this->table_name . " = ?;";
+                $pg = Bundle::get_pgsql();
+
+                $pg->prepare($id = uniqid(), $query);
+                if (!$pg->execute($id, [$this->row_id])) {
                     $success = false;
                 }
                 foreach ($this->$col as $instance) {
-                    $query = "INSERT INTO " . Utils::graveify($v[2]) . " VALUES (".join(",",str_split(str_repeat("?", 3))) . ");";
-                    $stmt = Core::$staticDb->prepare($query);
-                    if (!$stmt->execute([null, $this->row_id, $instance->row_id])) {
+                    $query = "INSERT INTO " . $v[2] . " VALUES (".join(",",str_split(str_repeat("?", 3))) . ");";
+                    $pg = Bundle::get_pgsql();
+                    $pg->prepare($id = uniqid(), $query);
+                    if (!$pg->execute($id, [null, $this->row_id, $instance->row_id])) {
                         $success = false;
                     }
                     if (!$instance->save()) {
@@ -172,9 +178,10 @@ class Model {
         $success = true;
         // if the model was created, no need to delete it
         if ($this->row_id !== self::DEFAULT_ID) {
-            $query = "DELETE FROM ".Utils::graveify(self::$this->table_name)." WHERE row_id = ?;";
-            $stmt = Core::$staticDb->prepare($query);
-            if (!$stmt->execute([$this->row_id])) {
+            $query = "DELETE FROM ".self::$this->table_name." WHERE row_id = ?;";
+            $pg = Bundle::get_pgsql();
+            $pg->prepare($id = uniqid(), $query);
+            if (!$pg->execute($id, [$this->row_id])) {
                 $success = false;
             }
             foreach ($this->relations as $col => $v) {
@@ -182,9 +189,10 @@ class Model {
                 // relation can be one-to-many
                 // or many-to-many
                 if (in_array($v[0], ["one_to_many", "many_to_many"])) {
-                    $query = "DELETE FROM " . Utils::graveify($v[2]) . " WHERE " . Utils::graveify(self::pluralToSingular($this->tableName) . "_id") . " = ?;";
-                    $stmt = Core::$staticDb->prepare($query);
-                    if (!$stmt->execute([$this->row_id])) {
+                    $query = "DELETE FROM " . $v[2] . " WHERE " . $this->table_name . " = ?;";
+                    $pg = Bundle::get_pgsql();
+                    $pg->prepare($id = uniqid(), $query);
+                    if (!$pg->execute($id, [$this->row_id])) {
                         $success = false;
                     }
                 }
@@ -336,7 +344,7 @@ class Model {
                 case 'many_to_many':
                     break;
                 default:
-                    throw new \Exception("Unsupported relation ship in table " . $this->tableName . " for " . $key);
+                    throw new \Exception("Unsupported relation ship in table " . $this->table_name . " for " . $key);
                     break;
             }
             return 1;
@@ -386,15 +394,18 @@ class Model {
      * @param array $args
      * @return Model[]
      */
-    public function select(string $condition, array $args) {
-        $query = "SELECT * FROM " . Utils::graveify($this->tableName) . " WHERE ".$condition." ;";
-        $stmt = Core::$staticDb->prepare($query);
-        $result = $stmt->execute($args);
+    public function select(string $condition = "true", array $args = []) {
+        $query = "SELECT * FROM  $this->table_name WHERE $condition ;";
+        var_dump($query);
+        $pg = Bundle::get_pgsql();
+        $pg->prepare($id = uniqid(), $query);
+        $result = $pg->fetchAll($pg->execute($id, $args));
         $output = [];
+        var_dump($result);
         $className = self::getModelClass();
-        foreach ($result as $k => $v) {
-            array_push($output, new $className($v["row_id"]));
-        }
+        if (is_array($result))
+            foreach ($result as $k => $v)
+                array_push($output, new $className($v["row_id"]));
         return $output;
     }
 }

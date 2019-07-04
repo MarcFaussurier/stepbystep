@@ -2,6 +2,8 @@
 
 namespace CloudsDotEarth\App\Controller;
 
+use CloudsDotEarth\App\Model\Users;
+
 class Home extends \CloudsDotEarth\StepByStep\Controller {
 
 
@@ -35,6 +37,9 @@ class Home extends \CloudsDotEarth\StepByStep\Controller {
      **/
     public function request(&$request, &$response, &$cross_call_memory, &$main_bundle, &$matches = []): bool {
         $response->end($main_bundle->twig->render("marcfsr/stepbystep/home", ['msg' => 'toto']));
+
+        $user = new Users();
+        var_dump($user->select());
         echo "toto1" . PHP_EOL;
         var_dump($matches);
         return false;
