@@ -32,6 +32,7 @@ try {
             null,
             null,
             null  ,
+            null,
             $GLOBALS["main_bundle"]);
     else
         return new \CloudsDotEarth\StepByStep\Bundle(__DIR__);

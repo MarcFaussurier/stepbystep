@@ -19,7 +19,7 @@ class Model {
      * Current table name
      * @var string
      */
-    public $tableName;
+    public $table_name;
     /**
      *  Used for switching between insert / update modes
      */
@@ -39,6 +39,17 @@ class Model {
      */
     public $relations = [];
 
+    public $info = [];
+
+    public $class_name;
+
+    public $properties_class_name;
+
+    public $namespaced_class_name;
+
+    public $namespaced_properties_class_name;
+
+    public $namespace;
     /**
      * Model constructor.
      * @param int $id
@@ -46,14 +57,23 @@ class Model {
      */
     public function __construct(int $id = self::DEFAULT_ID)
     {
+        [
+            $this->class_name,
+            $this->properties_class_name,
+            $this->namespaced_class_name,
+            $this->namespaced_properties_class_name,
+            $namespace
+        ] = ModelGenerator::getInfosFromTableName($this->table_name);
+
+        $this->infos = ModelGenerator::getInfosFromTableName($this->table_name);
         $this->row_id = $id;
         $this->tableMetaData = $this->getModelMetaData();
         if ($this->row_id !== -1) {
-            $stmt = Core::$staticDb->prepare("SELECT * FROM `".$this->tableName."` WHERE row_id = ?;");
+            $stmt = Core::$staticDb->prepare("SELECT * FROM `".$this->table_name."` WHERE row_id = ?;");
             $rowResult = $stmt->execute([$this->row_id]);
             if (count($rowResult) !== 1) {
                 throw new \Exception("Unable to fetch model id " . $this->row_id . " from table "
-                    . $this->tableName . " model have to exists and to be unique");
+                    . $this->table_name . " model have to exists and to be unique");
             }
             $this->tableMetaData = $this->getModelMetaData();
             foreach ($rowResult[0] as $k => $v) {
@@ -65,7 +85,7 @@ class Model {
                 // or many-to-many
                 if (in_array($v[0], ['many_to_many', 'one_to_many'])) {
                     $targetTable = $v[2];
-                    $query = "SELECT * FROM " . Utils::graveify($v[2]) . " WHERE " . Utils::graveify(self::pluralToSingular($this->tableName) . "_id") . " = ?;";
+                    $query = "SELECT * FROM " . Utils::graveify($v[2]) . " WHERE " . Utils::graveify(self::pluralToSingular($this->table_name) . "_id") . " = ?;";
                     $stmt = Core::$staticDb->prepare($query);
                     $rows = $stmt->execute([$this->row_id]);
                     $this->$col = [];
@@ -90,7 +110,7 @@ class Model {
         $success = true;
         // insert if no id were given
         if ($this->row_id === self::DEFAULT_ID) {
-            $query = "INSERT INTO `".$this->tableName."` VALUES(null";
+            $query = "INSERT INTO `".$this->table_name."` VALUES(null";
             foreach ($this->tableMetaData as $key => $value) {
                 if ($key !== "row_id") {
                     $query .= ",?";
@@ -101,7 +121,7 @@ class Model {
         }
         // else we perform an update
         else {
-            $query = "UPDATE `".$this->tableName."` SET ";
+            $query = "UPDATE `".$this->table_name."` SET ";
             $countOfCols = count($this->tableMetaData);
             $cnt = 0;
             foreach ($this->tableMetaData as $key => $value) {
@@ -120,7 +140,7 @@ class Model {
         }
         foreach ($this->relations as $col => $v) {
             if(in_array($v[0], ["one_to_many", "many_to_many"])) {
-                $query = "DELETE FROM " . Utils::graveify($v[2]) . " WHERE " . Utils::graveify(self::pluralToSingular($this->tableName) . "_id") . " = ?;";
+                $query = "DELETE FROM " . Utils::graveify($v[2]) . " WHERE " . Utils::graveify(self::pluralToSingular($this->table_name) . "_id") . " = ?;";
                 $stmt = Core::$staticDb->prepare($query);
                 if (!$stmt->execute([$this->row_id])) {
                     $success = false;
@@ -152,7 +172,7 @@ class Model {
         $success = true;
         // if the model was created, no need to delete it
         if ($this->row_id !== self::DEFAULT_ID) {
-            $query = "DELETE FROM ".Utils::graveify(self::$tableName)." WHERE row_id = ?;";
+            $query = "DELETE FROM ".Utils::graveify(self::$this->table_name)." WHERE row_id = ?;";
             $stmt = Core::$staticDb->prepare($query);
             if (!$stmt->execute([$this->row_id])) {
                 $success = false;
@@ -176,13 +196,9 @@ class Model {
      * @param string $tableName
      * @return mixed
      */
-    public static function tableNameToClass(string $tableName) {
-        $propertiesClass = ucfirst($tableName) . "Properties";
-        foreach(get_declared_classes() as $class){
-            if(get_parent_class($class) === $propertiesClass)
-                return $class;
-        }
-        throw new \Exception("Unable to find appropriate model for table name : " . $tableName);
+    public static function tableNameToClass(string $table_name) {
+        [$class_name, $properties_class_name, $namespaced_class_name, $namespaced_properties_class_name, $namespace ] = ModelGenerator::getInfosFromTableName($table_name);
+        return $namespaced_class_name;
     }
     /**
      * @param string $tableName
@@ -216,7 +232,7 @@ class Model {
      */
     public function getModelMetaData() : array {
         $finalOutput = [];
-        $source = file_get_contents( __DIR__ . "/../../generated/models/".ucfirst($this->tableName)."Properties.php" );
+        $source = file_get_contents($GLOBALS["main_bundle"]->root_path .  $GLOBALS["main_bundle"]->relative_model_root ."/" .$this->properties_class_name . ".php");
         $tokens = token_get_all( $source );
         $comment = array(
             T_COMMENT,      // All comments since PHP5

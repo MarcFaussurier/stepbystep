@@ -34,14 +34,15 @@ class Bundle
     /**
      * @var bool
      */
-    private $is_main = true;
-    private $root_path = "";
-    private $relative_template_root = "/template";
-    private $relative_controller_root = "/controller";
-    private $relative_web_root = "/asset";
-    private $relative_server_root = "/server";
+    public $is_main = true;
+    public $root_path = "";
+    public $relative_model_root = "/model";
+    public $relative_template_root = "/template";
+    public $relative_controller_root = "/controller";
+    public $relative_web_root = "/asset";
+    public $relative_server_root = "/server";
 
-    public function __construct($root_path, $relative_controller_root = null, $relative_web_root = null, $relative_server_root = null, $main_bundle = null)
+    public function __construct($root_path, $relative_controller_root = null, $relative_model_root = null, $relative_web_root = null, $relative_server_root = null, $main_bundle = null)
     {
         $this->root_path = $root_path;
         $this->is_main = $main_bundle === null;
@@ -52,6 +53,7 @@ class Bundle
         $GLOBALS["main_bundle"] = $this->main_bundle;
         echo "Loading bundle using root path : $root_path is main :  $this->is_main" . PHP_EOL;
         $this->relative_controller_root = $relative_controller_root ?? $this->relative_controller_root;
+        $this->relative_model_root = $relative_model_root ?? $this->relative_model_root;
         $this->relative_web_root = $relative_web_root ?? $this->relative_web_root;
         $this->relative_server_root = $relative_server_root ?? $this->relative_server_root;
         $this->loadControllers();
@@ -61,22 +63,26 @@ class Bundle
             $this->appendControllersMethods();
             $this->loadChildBundles();
             $this->loadTwig();
-            $this->initDatabaseConnexion();
         }
         if ($this->is_main)  $this->run();
     }
 
-    public function initDatabaseConnexion() {
-      /*  go(function () {
-            echo "Connecting to database...";
-            $pg = new \Swoole\Coroutine\PostgreSql();
-            $conn = $pg -> connect ("host=127.0.0.1 port=5432 dbname=stepbystep user=postgres password=");
-            if(!$conn){
-                var_dump($pg->error);
-            } else {
-                echo "okok";
-            }
-        });*/
+    public static function get_pgsql() : \Swoole\Coroutine\PostgreSql {
+        $vars = []; foreach (explode(" ", "DB_HOST DB_PORT DB_NAME DB_USER DB_PASSWORD") as $v)  $vars[$v] = getenv($v);
+        $vars = (object) $vars;
+        $pg = new \Swoole\Coroutine\PostgreSql();
+        $conn = $pg -> connect ("host=$vars->DB_HOST port=$vars->DB_PORT dbname=$vars->DB_NAME user=$vars->DB_USER password=$vars->DB_PASSWORD");
+        if(!$conn) {
+            throw new \Exception("Unable to connect to the database, please edit your .env settings");
+        } else {
+            echo "Connected!" . PHP_EOL;
+            return $pg;
+        }
+    }
+
+    public function generateModelsIfNeeded() {
+        $model_generator = new ModelGenerator($this, "$this->root_path/model");
+        $model_generator->secondStep();
     }
 
     public function loadViews() {
@@ -119,7 +125,6 @@ class Bundle
 
     public function loadChildBundles()
     {
-        var_dump("bundles:");
         foreach (["/bundles", "/vendor"] as $v) {
             if (file_exists($this->root_path . $v))
                 foreach (preg_grep('/^([^.])/',scandir($this->root_path . $v)) as $vendor_name)
@@ -131,10 +136,6 @@ class Bundle
                                         $this->child_bundles[] = require_once $this->root_path . "$v/$vendor_name/$package/$file";
 
         }
-
-        var_dump("bundles:");
-       // var_dump($this->child_bundles);
-
     }
 
     public function init() {

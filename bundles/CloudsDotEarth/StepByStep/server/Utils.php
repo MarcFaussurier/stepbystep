@@ -101,26 +101,31 @@ class Utils {
 
     /**
      * Returns all table in the current database
-     * @param Core $core
      * @return string[]
      */
-    public static function getDatabaseTables(Core &$core) : array {
+    public static function getDatabaseTables() : array {
         $output = [];
-        $tables = $core->db->query("show tables");
-        foreach ($tables as $k => $v) {
-            array_push($output, $v["Tables_in_" . $core->envConfig["database"]["database"]]);
+        $pg = Bundle::get_pgsql();
+        $result = $pg->query(" 
+         SELECT table_name FROM information_schema.tables 
+         WHERE table_schema='public' AND table_type='BASE TABLE';");
+        foreach($pg->fetchAll($result) as $v) {
+            $output[] = $v["table_name"];
         }
         return $output;
     }
 
     /**
-     * @param Core $core
-     * @param string $tableName
+     * @param string $table_name
      * @return array
      */
-    public static function getColsInTable(Core &$core, string $tableName) : array {
+    public static function getColsInTable(string $table_name) : array {
+        $pg = Bundle::get_pgsql();
         return
-            $core->db->query("SHOW COLUMNS FROM `". $tableName . "`");
+            $pg->fetchAll($pg->query("
+                SELECT * FROM information_schema.columns
+                WHERE table_schema = 'public' 
+                AND table_name   = '$table_name';"));
     }
 
     /**

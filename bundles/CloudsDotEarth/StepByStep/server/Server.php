@@ -17,10 +17,16 @@ class Server
 
     private $main_bundle;
 
+    private $db_conn_set = false;
+
     public function __construct(Bundle &$main_bundle, $swoole_server) {
         $this->main_bundle = $main_bundle;
         $swoole_server->on('start', function ($server) {
             go(function () use(&$server) {
+                if (!$this->db_conn_set) {
+                    $this->db_conn_set = true;
+                    $this->main_bundle->generateModelsIfNeeded();
+                }
                 foreach ($this->main_bundle->controllers_methods as $e) {
                     if ($e["packet_type"] !== "start") continue;
                     if ($this->exec($e["controller"], $e["function"], function ($e, $server) {
